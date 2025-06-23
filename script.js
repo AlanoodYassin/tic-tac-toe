@@ -1,5 +1,4 @@
 const Gameboard = (function () {
-
   const rows = 3;
   const columns = 3;
   let board = [];
@@ -13,58 +12,51 @@ const Gameboard = (function () {
 
   const getBoard = () => board;
 
-  return {getBoard};
-
+  return { getBoard };
 })();
 
+const soundController = (function () {
+  const clickSound = new Audio("./assets/popSound.mp3");
+  const backgroundMusic = new Audio("./assets/gameSoundTrack.mp3");
+
+  backgroundMusic.loop = true;
+
+  const playGameTrack = () => backgroundMusic.play();
+  const playClick = () => clickSound.play();
+  const stopMusic = () => {};
+  return { playGameTrack, playClick, stopMusic };
+})();
 
 function Cell(rowIndex, columnIndex) {
+  let value = null;
+  let position = { rowIndex, columnIndex };
 
-    let value = null;
-    let position = {rowIndex , columnIndex};
+  // we get player token from playround
+  const updateValue = (playerToken) => {
+    value = playerToken;
+  };
+  const getValue = () => value;
+  const getPosition = () => position;
 
-    // we get player token from playround
-    const updateValue = (playerToken) => {
-        value = playerToken;
-    }
-    const getValue = () => value;
-    const getPosition= ()=> position;
-  
-    return { updateValue, getValue, getPosition }
-  }
+  return { updateValue, getValue, getPosition };
+}
 
+const Gamecontroller = function (selectedTokens) {
+  const board = Gameboard.getBoard();
+  let gameOver = false;
 
-const Gamecontroller = function () {
- 
- 
-    const board = Gameboard.getBoard();
-    let gameOver = false;
+  const getGameOver = () => gameOver;
 
-    const getGameOver = () => gameOver;
-
-
-    const playerTokens =[
-    {name: "banana", image:"./assets/banana.png"},
-    {name: "blueberry", image:"./assets/blueberry.png"},
-    {name: "butter", image:"./assets/butter.png"},
-    {name: "cream", image:"./assets/cream.png"},
-    {name: "kiwi", image:"./assets/kiwi.png"},
-    {name: "pinapple", image:"./assets/pinapple.png"},
-    {name: "strawberry", image:"./assets/strawberry.png"}, 
-    ];
-
-
-     const players = [
-      { name: "Player One", token: playerTokens[0] },
-      { name: "Player Two", token:  playerTokens[6] }
-     ];
-
+  const players = [
+    { name: "Player 1", token: selectedTokens[0] },
+    { name: "Player 2", token: selectedTokens[1] },
+  ];
 
   let activePlayer = players[0];
   const getActivePlayer = () => activePlayer;
 
   const switchPlayerTurn = () => {
-      activePlayer = activePlayer === players[0] ? players[1] : players[0];
+    activePlayer = activePlayer === players[0] ? players[1] : players[0];
   };
 
   const checkWin = (board) => {
@@ -118,39 +110,33 @@ const Gamecontroller = function () {
     return true;
   };
 
-
-
   let winner = null;
   let isDraw = false;
-  
+
   const playRound = (row, column) => {
     if (gameOver) return;
-  
+
     const cell = board[row][column];
     if (cell.getValue() !== null) return;
-  
+
     cell.updateValue(getActivePlayer().token);
-  
+
     const winningToken = checkWin(board);
     if (winningToken) {
-      winner = players.find(p => p.token.name === winningToken.name);
+      winner = players.find((p) => p.token.name === winningToken.name);
       gameOver = true;
       return;
     }
-  
+
     if (checkDraw(board)) {
       isDraw = true;
       gameOver = true;
       return;
     }
-  
+
     switchPlayerTurn();
   };
-  
 
-
-
-  
   return {
     playRound,
     getActivePlayer,
@@ -158,101 +144,224 @@ const Gamecontroller = function () {
     getGameOver,
     getWinner: () => winner,
     isDraw: () => isDraw,
-
   };
-  
-
-
 };
 
-
 const screencontroller = (function () {
+  let selectedTokens = [];
+  let currentSelectingPlayer = 1; // Player 1 starts
+  let game = null; // will create later
 
-    const statusHeading = document.querySelector('.gamestatus');
+  window.onload = function () {
+    const body = document.querySelector("body");
 
+    // Create and add game status heading
+    const statusHeading = document.createElement("h1");
+    statusHeading.classList.add("gamestatus");
 
-    const game = Gamecontroller();
+    const playerTokens = [
+      { name: "banana", image: "./assets/banana.png" },
+      { name: "blueberry", image: "./assets/blueberry.png" },
+      { name: "butter", image: "./assets/butter.png" },
+      { name: "cream", image: "./assets/cream.png" },
+      { name: "kiwi", image: "./assets/kiwi.png" },
+      { name: "pinapple", image: "./assets/pinapple.png" },
+      { name: "strawberry", image: "./assets/strawberry.png" },
+    ];
+
+    renderTokenPreviews(playerTokens);
+
+    const startButton = document.querySelector(".start-button");
+    const homescreen = document.querySelector(".homescreen");
 
     const updateGameStatus = () => {
-        if (game.getGameOver()) {
-          const winner = game.getWinner();
-          statusHeading.textContent = winner ? `${winner.name} wins!` : "It's a draw!";
-        } else {
-          statusHeading.textContent = `${game.getActivePlayer().name}'s turn`;
-        }
-      };
+      if (game.getGameOver()) {
+        const winner = game.getWinner();
+        statusHeading.textContent = winner
+          ? `${winner.name} Wins!`
+          : "It's a Draw!";
+      } else {
+        statusHeading.textContent = `${game.getActivePlayer().name}'s Turn`;
+      }
+    };
+
+    startButton.addEventListener("click", () => {
+      const messageBox = document.querySelector(".message-box");
+      if (selectedTokens.length < 2) {
+        messageBox.textContent = "Please select tokens for both players.";
+        return;
+      }
+
+      messageBox.textContent = ""; // clear message
+      homescreen.remove();
+      game = Gamecontroller(selectedTokens);
+      renderInitialBoard(game.getBoard());
+      updateGameStatus();
+    });
+
+    function renderTokenPreviews(tokens) {
+      const menubar = document.querySelector(".menubar");
+      const messageBox = document.querySelector(".message-box"); // get message box
+      messageBox.textContent = "Player 1, pick your token";
+
+      tokens.forEach((token) => {
+        const cell = document.createElement("div");
+        cell.classList.add("preview-cell");
+
+        const base = document.createElement("img");
+        base.src = "./assets/cell.png";
+        base.classList.add("base");
+
+        const topping = document.createElement("img");
+        topping.src = token.image;
+        topping.classList.add("topping");
+
+        const label = document.createElement("div");
+        label.classList.add("token-label");
+        label.textContent = token.name;
+
+        cell.appendChild(base);
+        cell.appendChild(topping);
+        cell.appendChild(label);
+
+        cell.addEventListener("click", () => {
+          if (
+            selectedTokens.find((t) => t.name === token.name) ||
+            selectedTokens.length >= 2
+          )
+            return; // already taken or already selected 2
+
+          cell.classList.add("selected");
+          selectedTokens.push(token);
+
+          if (selectedTokens.length === 1) {
+            messageBox.textContent = "Player 2, pick your token";
+            currentSelectingPlayer = 2;
+          } else if (selectedTokens.length === 2) {
+            messageBox.textContent = "Both players selected. Start the game!";
+          }
+        });
+
+        menubar.appendChild(cell);
+      });
+    }
 
     function renderInitialBoard(board) {
-        const gameboardDiv = document.querySelector('.gameboard');
-        gameboardDiv.innerHTML = ''; // clear any existing content
-      
-        board.forEach((row, rowIndex) => {
-          row.forEach((cell, columnIndex) => {
-            const cellDiv = document.createElement('div');
-            cellDiv.classList.add('cell');
-            cellDiv.dataset.row = rowIndex;
-            cellDiv.dataset.column = columnIndex;
-      
-            const img = document.createElement('img');
-            img.classList.add('base'); 
-            img.src = './assets/cell.png';
-      
-            cellDiv.appendChild(img);
-            gameboardDiv.appendChild(cellDiv);
-          });
+      const body = document.querySelector("body");
+
+      const gameScreen = document.createElement("div");
+      gameScreen.classList.add("gameScreen");
+      body.appendChild(gameScreen);
+
+      const Header = document.createElement("div");
+      Header.classList.add("gameHeader");
+      gameScreen.appendChild(Header);
+
+      const logo = document.createElement("img");
+      logo.src = "./assets/Title.png";
+      logo.classList.add("gamelogo");
+
+      const resetButton = document.createElement("img");
+      resetButton.src = "./assets/restart.png";
+      resetButton.classList.add("resetButton");
+
+      resetButton.addEventListener("click", () => {
+  // Reset all cell values in the existing board
+  const board = game.getBoard();
+  board.forEach(row => {
+    row.forEach(cell => {
+      cell.updateValue(null); // this clears the cell value
+    });
+  });
+
+  // Remove any existing toppings in the UI
+  const toppingImgs = document.querySelectorAll(".cell img.topping");
+  toppingImgs.forEach(img => img.remove());
+
+  // Reset game controller logic
+  game = Gamecontroller(selectedTokens);
+
+  // Reset status heading to player 1's turn
+  updateGameStatus();
+});
+
+
+
+
+      Header.appendChild(logo);
+
+      const picnicscene = document.createElement("div");
+      picnicscene.style.backgroundImage = "url('./assets/picnic-scene.png')";
+      picnicscene.classList.add("gamescene");
+      gameScreen.appendChild(picnicscene);
+
+      const footer = document.createElement("div");
+      footer.classList.add("footer");
+
+      footer.appendChild(statusHeading);
+      footer.appendChild(resetButton);
+      gameScreen.appendChild(footer);
+
+      const gameboardDiv = document.createElement("div");
+      gameboardDiv.classList.add("gameboard");
+      picnicscene.appendChild(gameboardDiv);
+
+      gameboardDiv.innerHTML = "";
+      board.forEach((row, rowIndex) => {
+        row.forEach((cell, columnIndex) => {
+          const cellDiv = document.createElement("div");
+          cellDiv.classList.add("cell");
+          cellDiv.dataset.row = rowIndex;
+          cellDiv.dataset.column = columnIndex;
+
+          const img = document.createElement("img");
+          img.classList.add("base");
+          img.src = "./assets/cell.png";
+
+          cellDiv.appendChild(img);
+          gameboardDiv.appendChild(cellDiv);
         });
-        gameboardDiv.addEventListener('click', handleCellClick);
-      }
-      
-      updateGameStatus();    
-    
-      function handleCellClick(e) {
-        // nearest ancestor element (or itself) that has the class .cell
-        const cellDiv = e.target.closest('.cell');
-        if (!cellDiv) return;
-    
-        const row = parseInt(cellDiv.dataset.row);
-        const column = parseInt(cellDiv.dataset.column);
-    
-        const currentPlayer = game.getActivePlayer();
-        const cellObj = game.getBoard()[row][column];
-    
-        if (cellObj.getValue() !== null || game.getGameOver()) return;
-    
-        game.playRound(row, column, currentPlayer);
-        updateCellUI(row, column, currentPlayer.token.image);
-        updateGameStatus();
-          }
-    
-      function updatePlayerTurnDisplay() {
-        const activePlayer = game.getActivePlayer();
-        playerTurnHeading.textContent = `${activePlayer.name}'s turn`;
+      });
+
+      soundController.playGameTrack();
+      gameboardDiv.addEventListener("click", handleCellClick);
     }
-      function updateCellUI(row, column, tokenImage) {
-        const cellDiv = document.querySelector(`.cell[data-row="${row}"][data-column="${column}"]`);
-    
-        const existing = cellDiv.querySelector('img.topping');
-        if (existing) return;
-    
-        const toppingImg = document.createElement('img');
-        toppingImg.src = tokenImage;
-        toppingImg.classList.add('topping');
-        toppingImg.style.position = 'absolute';
-        toppingImg.style.top = '0';
-        toppingImg.style.left = '0';
-        toppingImg.style.width = '100%';
-    
-        cellDiv.appendChild(toppingImg);
-      }
-    
 
-  
-    //const updateTurnMessage()
+    function handleCellClick(e) {
+      const cellDiv = e.target.closest(".cell");
+      if (!cellDiv || !game) return;
 
+      const row = parseInt(cellDiv.dataset.row);
+      const column = parseInt(cellDiv.dataset.column);
 
-    //boardDiv.addEventListener('click', clickHandlerBoard);
-    renderInitialBoard(game.getBoard()); 
+      const currentPlayer = game.getActivePlayer();
+      const cellObj = game.getBoard()[row][column];
 
+      if (cellObj.getValue() !== null || game.getGameOver()) return;
 
-  
+      game.playRound(row, column);
+      soundController.playClick();
+      updateCellUI(row, column, currentPlayer.token.image);
+      updateGameStatus();
+    }
+
+    function updateCellUI(row, column, tokenImage) {
+      const cellDiv = document.querySelector(
+        `.cell[data-row="${row}"][data-column="${column}"]`
+      );
+
+      const existing = cellDiv.querySelector("img.topping");
+      if (existing) return;
+
+      const toppingImg = document.createElement("img");
+      toppingImg.src = tokenImage;
+      toppingImg.classList.add("topping");
+      toppingImg.style.position = "absolute";
+      toppingImg.style.top = "0";
+      toppingImg.style.left = "0";
+      toppingImg.style.width = "100%";
+
+      cellDiv.appendChild(toppingImg);
+    }
+  };
 })();

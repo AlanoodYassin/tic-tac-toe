@@ -1,30 +1,120 @@
 body {
   background-color: #FFE6EE;
-  font-family: 'VT323', monospace;
+  font-family: 'Pacifico', cursive;
   display: flex;
   flex-direction: column;
   align-items: center;
   height: 100vh;
   margin: 0;
+  overflow: hidden;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+
+}
+
+.logo{
+  align-self: center; /* or center if you want */
+  width: auto;
+  height: auto;
+  width: 400px;
+  height: 130px;
+  margin-top: 30px;
+}
+
+.menu{
+  background-image: url('./assets/menu.png');
+  margin-top: 20px;
+    background-size: contain;   /* or 'cover' depending on your image */
+  background-repeat: no-repeat;
+  background-position: center; 
+   width: 1065px;      /* Set width */
+  height: 500px;     /* Set height */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+}
+
+.resetButton {
+  width: 170px;
+  height: 80px;
+  align-self: flex-start;
+  margin-left: 10%;
+  margin-top: -20px;
+
+}
+
+
+.start-button {
+  align-self:  flex-end ; /* or center if you want */
+  width: auto;
+  height: auto;
 }
 
 h1 {
   color: lightpink;
-  font-size: 60px;
+  font-size: 40px;
   text-align: center;
   text-shadow:
-    -3px -3px 0 pink,
-     3px -3px 0 pink,
-    -3px  3px 0 pink,
-     3px  3px 0 pink,
-     0px  0px 3px pink;
+    2px 2px 0 #ff3873,
+    4px 4px 0 #eb86a4,
+    6px 6px 10px #ffc1d1;
+    margin-bottom: 5px;
+
+
+}
+
+.footer{
+
+display: flex;
+justify-content: center;
+height: 150px;
+
+}
+
+.gamestatus{
+margin-top: -20px;
+
+}
+
+
+.gamelogo{
+
+width: 35%;
+height: 35%;
+
+}
+
+.homescreen{
+  display: flex;
+flex-direction: column;
+
+
+
+}
+
+.gamescene {
+ 
+    width: 920px;
+  height: 600px;
+
+
+  position: relative;
+
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain; /* ✅ Ensures image fits without cropping */
 }
 
 .gameboard {
   display: grid;
-  grid-template-columns: repeat(3, 90px);
-  grid-template-rows: repeat(3, 90px);
+grid-template-columns: repeat(3, 98.5px);
+grid-template-rows: repeat(3, 98.5px);
+      position: absolute;
   width: max-content;
+  margin-top: 13.5%;
+  margin-left: 35%;
   gap: 0;
   font-size: 0;       /* removes inline spacing between cells */
   padding: 0;
@@ -33,13 +123,14 @@ h1 {
 
 .cell {
   position: relative;  /* enables absolute positioning of toppings inside */
-  width: 90px;
-  height: 90px;
+  width: 112px;
+  height: 112px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0;
+  gap: 0px;
   padding: 0;
 }
 
@@ -50,17 +141,7 @@ h1 {
   display: block;
 }
 
-  
-  .cell {
-    position: relative;  /* so we can absolutely position toppings inside */
-    width: 100px;
-    height: 100px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
+
   .cell img.base {
     width: 100%;
     height: 100%;
@@ -75,3 +156,79 @@ h1 {
     object-fit: contain;
     pointer-events: none; /* clicks pass through topping */
   }
+
+  .menubar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 50px;
+
+}
+
+.preview-cell {
+  position: relative;
+  width: 130px;
+  height: 130px;
+}
+
+.preview-cell img {
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+}
+
+.preview-cell .topping {
+  
+  position: absolute; 
+   width: 60%;
+    height: 60%;
+  top: 0;
+      margin-top: 20%;  
+      margin-left: 20%;  
+
+
+      object-fit: contain;
+    pointer-events: none; /* clicks pass through topping */
+
+  left: 0;
+}
+
+.token-label{
+
+  color: #ff3873;
+  font-size: 18px;
+  text-align: center;
+  background-color: white;
+  width: 100px;
+  margin-left: 15px;
+  border: 1px solid #ff3873;
+
+} 
+.preview-cell.selected {
+  outline: 2px solid #ff3873;
+  border-radius: 10px;
+}
+
+.message-box {
+  color: #ff3873;
+  font-size: 20px;
+  text-align: center;
+  margin-top: 10px;
+  min-height: 30px; /* to reserve space */
+  font-weight: bold;
+  font-family: 'Pacifico', cursive;
+}
+
+.gameScreen{
+
+display: flex;
+flex-direction: column;
+}
+
+.gameHeader{
+
+display: flex;
+justify-content: center;
+align-items: center;
+margin-top: 10px;
+}
