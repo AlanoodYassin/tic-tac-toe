@@ -5,6 +5,11 @@
     <title>Tic Tac Toe</title>
     <link rel="stylesheet" href="style.css" />
     <link
+      href="https://fonts.googleapis.com/css2?family=VT323&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
       href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap"
       rel="stylesheet"
     />
@@ -21,6 +26,17 @@
       <img src="./assets/start.png" class="start-button" />
     </div>
 
+    <div id="gameResultModal" class="hidden">
+      <div class="modal-content">
+        <h2 id="resultMessage"></h2>
+            <div id="scoreBoard"></div>
+
+        <button id="playAgainBtn">Play Again</button>
+        <button id="homeBtn">Home</button>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

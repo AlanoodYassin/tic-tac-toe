@@ -18,13 +18,56 @@ const Gameboard = (function () {
 const soundController = (function () {
   const clickSound = new Audio("./assets/popSound.mp3");
   const backgroundMusic = new Audio("./assets/gameSoundTrack.mp3");
+  const winSound = new Audio("./assets/winSound.mp3");
 
   backgroundMusic.loop = true;
 
+  const playWinTrack = () => {
+    backgroundMusic.pause();
+    backgroundMusic.currentTime = 0;
+    winSound.volume = 0.2;
+    winSound.play();
+  };
+
   const playGameTrack = () => backgroundMusic.play();
   const playClick = () => clickSound.play();
-  const stopMusic = () => {};
-  return { playGameTrack, playClick, stopMusic };
+  return { playGameTrack, playClick, playWinTrack };
+})();
+
+const sprinkleController = (function () {
+  const sprinkleImage = new Image();
+  sprinkleImage.src = "./assets/sprinkle.png";
+
+  const createImageBitmapFromImage = async (img) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    return await createImageBitmap(canvas);
+  };
+
+  const celebrate = async () => {
+    console.log("Celebrate called", sprinkleImage.complete);
+    if (sprinkleImage.complete) {
+      const sprinkleBitmap = await createImageBitmapFromImage(sprinkleImage);
+      confetti({
+        particleCount: 120,
+        spread: 160,
+        origin: { y: 0.6 },
+        scalar: 0.7,
+        shapes: ["image"],
+        shapeOptions: {
+          image: sprinkleBitmap,
+        },
+        useWorker: false,
+      });
+    } else {
+      sprinkleImage.onload = celebrate;
+    }
+  };
+
+  return { celebrate };
 })();
 
 function Cell(rowIndex, columnIndex) {
@@ -42,18 +85,18 @@ function Cell(rowIndex, columnIndex) {
 }
 
 const Gamecontroller = function (selectedTokens) {
-  const board = Gameboard.getBoard();
   let gameOver = false;
-
-  const getGameOver = () => gameOver;
-
+  let winner = null;
+  let isDraw = false;
   const players = [
-    { name: "Player 1", token: selectedTokens[0] },
-    { name: "Player 2", token: selectedTokens[1] },
+    { name: "Player 1", token: selectedTokens[0], score: 0 },
+    { name: "Player 2", token: selectedTokens[1], score: 0 },
   ];
 
   let activePlayer = players[0];
+  const board = Gameboard.getBoard();
   const getActivePlayer = () => activePlayer;
+  const getGameOver = () => gameOver;
 
   const switchPlayerTurn = () => {
     activePlayer = activePlayer === players[0] ? players[1] : players[0];
@@ -64,29 +107,47 @@ const Gamecontroller = function (selectedTokens) {
       const r0 = board[i][0].getValue();
       const r1 = board[i][1].getValue();
       const r2 = board[i][2].getValue();
-
       if (r0 && r1 && r2 && r0.name === r1.name && r1.name === r2.name) {
         gameOver = true;
-        return r0;
+        return {
+          winner: r0,
+          line: [
+            [i, 0],
+            [i, 1],
+            [i, 2],
+          ],
+        };
       }
 
       const c0 = board[0][i].getValue();
       const c1 = board[1][i].getValue();
       const c2 = board[2][i].getValue();
-
       if (c0 && c1 && c2 && c0.name === c1.name && c1.name === c2.name) {
         gameOver = true;
-        return c0;
+        return {
+          winner: c0,
+          line: [
+            [0, i],
+            [1, i],
+            [2, i],
+          ],
+        };
       }
     }
 
-    // Diagonals
     const d1 = board[0][0].getValue();
     const d2 = board[1][1].getValue();
     const d3 = board[2][2].getValue();
     if (d1 && d2 && d3 && d1.name === d2.name && d2.name === d3.name) {
       gameOver = true;
-      return d1;
+      return {
+        winner: d1,
+        line: [
+          [0, 0],
+          [1, 1],
+          [2, 2],
+        ],
+      };
     }
 
     const a1 = board[0][2].getValue();
@@ -94,7 +155,14 @@ const Gamecontroller = function (selectedTokens) {
     const a3 = board[2][0].getValue();
     if (a1 && a2 && a3 && a1.name === a2.name && a2.name === a3.name) {
       gameOver = true;
-      return a1;
+      return {
+        winner: a1,
+        line: [
+          [0, 2],
+          [1, 1],
+          [2, 0],
+        ],
+      };
     }
 
     return null;
@@ -110,8 +178,7 @@ const Gamecontroller = function (selectedTokens) {
     return true;
   };
 
-  let winner = null;
-  let isDraw = false;
+  let winningLine = null; // outside playRound
 
   const playRound = (row, column) => {
     if (gameOver) return;
@@ -121,13 +188,15 @@ const Gamecontroller = function (selectedTokens) {
 
     cell.updateValue(getActivePlayer().token);
 
-    const winningToken = checkWin(board);
-    if (winningToken) {
+    const result = checkWin(board);
+    if (result) {
+      const winningToken = result.winner;
       winner = players.find((p) => p.token.name === winningToken.name);
+      winner.score++;
+      winningLine = result.line;
       gameOver = true;
       return;
     }
-
     if (checkDraw(board)) {
       isDraw = true;
       gameOver = true;
@@ -137,13 +206,30 @@ const Gamecontroller = function (selectedTokens) {
     switchPlayerTurn();
   };
 
+  const resetGame = (startingPlayer = players[0]) => {
+    // Clear board cells
+    board.forEach((row) => row.forEach((cell) => cell.updateValue(null)));
+
+    // Reset flags
+    gameOver = false;
+    winner = null;
+    isDraw = false;
+    winningLine = null;
+
+    // Set the active player who will start next game
+    activePlayer = startingPlayer;
+  };
+
   return {
     playRound,
     getActivePlayer,
     getBoard: () => board,
     getGameOver,
-    getWinner: () => winner,
+    getWinnerName: () => winner,
     isDraw: () => isDraw,
+    getWinnerLine: () => winningLine,
+    getPlayer: (index) => players[index],
+    resetGame,
   };
 };
 
@@ -176,12 +262,26 @@ const screencontroller = (function () {
 
     const updateGameStatus = () => {
       if (game.getGameOver()) {
-        const winner = game.getWinner();
+        const winner = game.getWinnerName();
         statusHeading.textContent = winner
           ? `${winner.name} Wins!`
           : "It's a Draw!";
+
+        if (winner) {
+          displayWin(game.getWinnerLine());
+          soundController.playWinTrack();
+          sprinkleController.celebrate();
+
+          setTimeout(() => {
+            showGameResult(winner);
+          }, 1300);
+        } else {
+          showGameResult(null);
+        }
       } else {
-        statusHeading.textContent = `${game.getActivePlayer().name}'s Turn`;
+        // Game still going — show whose turn it is
+        const currentPlayer = game.getActivePlayer();
+        statusHeading.textContent = `${currentPlayer.name}'s Turn`;
       }
     };
 
@@ -199,6 +299,64 @@ const screencontroller = (function () {
       updateGameStatus();
     });
 
+    function displayWin(winnerLine) {
+      winnerLine.forEach(([row, col]) => {
+        const cellDiv = document.querySelector(
+          `.cell[data-row="${row}"][data-column="${col}"]`
+        );
+
+        const sauceImg = document.createElement("img");
+        sauceImg.src = "./assets/honey.png";
+        sauceImg.classList.add("sauce");
+        sauceImg.style.position = "absolute";
+        sauceImg.style.top = "0";
+        sauceImg.style.left = "0";
+
+        console.log(
+          "Looking for:",
+          `.cell[data-row="${row}"][data-column="${col}"]`
+        );
+        console.log("Found:", cellDiv);
+
+        cellDiv.appendChild(sauceImg);
+      });
+    }
+    function showGameResult(winner) {
+      const modal = document.getElementById("gameResultModal");
+      const message = document.getElementById("resultMessage");
+      const scoreBoard = document.getElementById("scoreBoard");
+
+      if (winner) {
+        message.textContent = `${winner.name} wins the waffle war! 🧇`;
+      } else {
+        message.textContent = `It's a draw! Nobody gets the syrup.`;
+      }
+
+      const players = [game.getPlayer(0), game.getPlayer(1)];
+
+      scoreBoard.innerHTML = `
+    <p>${players[0].name}: ${players[0].score} </p>
+    <p>${players[1].name}: ${players[1].score} </p>
+  `;
+
+      modal.classList.remove("hidden");
+    }
+
+    const playAgainBtn = document.getElementById("playAgainBtn");
+    const homeBtn = document.getElementById("homeBtn");
+    const modal = document.getElementById("gameResultModal");
+
+    // 🎮 "Play Again" → just restart the game but keep the score
+    playAgainBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      restartGame();
+    });
+
+    // 🏠 "Home" → go back to homescreen and reset everything
+    homeBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      location.reload(); // reload the page to reset everything
+    });
     function renderTokenPreviews(tokens) {
       const menubar = document.querySelector(".menubar");
       const messageBox = document.querySelector(".message-box"); // get message box
@@ -246,6 +404,21 @@ const screencontroller = (function () {
       });
     }
 
+    function restartGame() {
+      const lastWinner = game.getWinnerName();
+      const startingPlayer = lastWinner || game.getPlayer(0); // If draw, Player 1 starts
+
+      game.resetGame(startingPlayer);
+
+      // Clear UI pieces and winning effects
+      document
+        .querySelectorAll(".cell img.topping")
+        .forEach((img) => img.remove());
+      document.querySelectorAll(".sauce").forEach((img) => img.remove());
+
+      updateGameStatus(); // Update status to show whose turn it is now
+    }
+
     function renderInitialBoard(board) {
       const body = document.querySelector("body");
 
@@ -266,27 +439,8 @@ const screencontroller = (function () {
       resetButton.classList.add("resetButton");
 
       resetButton.addEventListener("click", () => {
-  // Reset all cell values in the existing board
-  const board = game.getBoard();
-  board.forEach(row => {
-    row.forEach(cell => {
-      cell.updateValue(null); // this clears the cell value
-    });
-  });
-
-  // Remove any existing toppings in the UI
-  const toppingImgs = document.querySelectorAll(".cell img.topping");
-  toppingImgs.forEach(img => img.remove());
-
-  // Reset game controller logic
-  game = Gamecontroller(selectedTokens);
-
-  // Reset status heading to player 1's turn
-  updateGameStatus();
-});
-
-
-
+        restartGame();
+      });
 
       Header.appendChild(logo);
 
