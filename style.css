@@ -43,10 +43,11 @@ body {
   margin-top: -20px;
 }
 
-.start-button {
+.start-button{
   align-self: flex-end; /* or center if you want */
   width: auto;
   height: auto;
+  margin-right: 20px;
 }
 
 h1 {

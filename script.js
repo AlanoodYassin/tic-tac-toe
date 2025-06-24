@@ -52,9 +52,9 @@ const sprinkleController = (function () {
     if (sprinkleImage.complete) {
       const sprinkleBitmap = await createImageBitmapFromImage(sprinkleImage);
       confetti({
-        particleCount: 120,
-        spread: 160,
-        origin: { y: 0.6 },
+        particleCount: 250,
+        spread: 250,
+        origin: { y: 0.3 },
         scalar: 0.7,
         shapes: ["image"],
         shapeOptions: {
@@ -362,6 +362,8 @@ const screencontroller = (function () {
       const messageBox = document.querySelector(".message-box"); // get message box
       messageBox.textContent = "Player 1, pick your token";
 
+      const fragment = document.createDocumentFragment();
+
       tokens.forEach((token) => {
         const cell = document.createElement("div");
         cell.classList.add("preview-cell");
@@ -400,8 +402,10 @@ const screencontroller = (function () {
           }
         });
 
-        menubar.appendChild(cell);
+        fragment.appendChild(cell);
       });
+
+      menubar.appendChild(fragment);
     }
 
     function restartGame() {
@@ -444,41 +448,46 @@ const screencontroller = (function () {
 
       Header.appendChild(logo);
 
-      const picnicscene = document.createElement("div");
-      picnicscene.style.backgroundImage = "url('./assets/picnic-scene.png')";
-      picnicscene.classList.add("gamescene");
-      gameScreen.appendChild(picnicscene);
+      const picnicImg = new Image();
+      picnicImg.src = "./assets/picnic-scene.png";
 
       const footer = document.createElement("div");
       footer.classList.add("footer");
 
-      footer.appendChild(statusHeading);
-      footer.appendChild(resetButton);
-      gameScreen.appendChild(footer);
+      picnicImg.onload = () => {
+        const picnicscene = document.createElement("div");
+        picnicscene.style.backgroundImage = `url('${picnicImg.src}')`;
+        picnicscene.classList.add("gamescene");
+        gameScreen.appendChild(picnicscene);
 
-      const gameboardDiv = document.createElement("div");
-      gameboardDiv.classList.add("gameboard");
-      picnicscene.appendChild(gameboardDiv);
+        footer.appendChild(statusHeading);
+        footer.appendChild(resetButton);
+        gameScreen.appendChild(footer);
 
-      gameboardDiv.innerHTML = "";
-      board.forEach((row, rowIndex) => {
-        row.forEach((cell, columnIndex) => {
-          const cellDiv = document.createElement("div");
-          cellDiv.classList.add("cell");
-          cellDiv.dataset.row = rowIndex;
-          cellDiv.dataset.column = columnIndex;
+        const gameboardDiv = document.createElement("div");
+        gameboardDiv.classList.add("gameboard");
+        picnicscene.appendChild(gameboardDiv);
 
-          const img = document.createElement("img");
-          img.classList.add("base");
-          img.src = "./assets/cell.png";
+        gameboardDiv.innerHTML = "";
+        board.forEach((row, rowIndex) => {
+          row.forEach((cell, columnIndex) => {
+            const cellDiv = document.createElement("div");
+            cellDiv.classList.add("cell");
+            cellDiv.dataset.row = rowIndex;
+            cellDiv.dataset.column = columnIndex;
 
-          cellDiv.appendChild(img);
-          gameboardDiv.appendChild(cellDiv);
+            const img = document.createElement("img");
+            img.classList.add("base");
+            img.src = "./assets/cell.png";
+
+            cellDiv.appendChild(img);
+            gameboardDiv.appendChild(cellDiv);
+          });
         });
-      });
 
-      soundController.playGameTrack();
-      gameboardDiv.addEventListener("click", handleCellClick);
+        soundController.playGameTrack();
+        gameboardDiv.addEventListener("click", handleCellClick);
+      };
     }
 
     function handleCellClick(e) {
